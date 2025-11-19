@@ -1,47 +1,43 @@
 import requests
 from datetime import datetime
 
-BASE = "https://api.elections.kalshi.com/trade-api/v2"
+# 🔑 INSERT YOUR REAL API KEY HERE
+API_KEY = "71a8105f-9ef9-486a-9435-e168bd15f191"
 
-def get_pro_football_event_ids():
-    """Retrieve all event IDs for Pro Football using the official filters."""
-    url = f"{BASE}/search/events"
-    params = {"sport": "pro_football"}
-    r = requests.get(url, params=params, timeout=15)
-    r.raise_for_status()
-    data = r.json()
-
-    events = data.get("events", [])
-    return [event["id"] for event in events]
-
-
-def get_markets_for_event(event_id):
-    """Retrieve all markets for a given event."""
-    url = f"{BASE}/search/markets"
-    params = {"event_id": event_id}
-    r = requests.get(url, params=params, timeout=15)
-    r.raise_for_status()
-    return r.json().get("markets", [])
+# Base URL and headers
+BASE_URL = "https://api.elections.kalshi.com/trade-api/v2"
+HEADERS = {"Authorization": f"Bearer {API_KEY}"}
 
 
 def get_total_pro_football_volume():
-    """Sum volume across all Pro Football markets."""
-    total_volume = 0
+    """
+    Fetches ALL Pro Football markets using the correct Kalshi endpoint,
+    and returns the sum of their volume.
+    """
+    url = f"{BASE_URL}/search/markets?sport=PRO_FOOTBALL"
+    response = requests.get(url, headers=HEADERS)
 
-    event_ids = get_pro_football_event_ids()
+    # Raise if endpoint returns 4xx or 5xx
+    response.raise_for_status()
 
-    for event_id in event_ids:
-        markets = get_markets_for_event(event_id)
-        for m in markets:
-            total_volume += m.get("volume", 0)
+    data = response.json()
+    markets = data.get("markets", [])
 
+    # Sum volume across all NFL markets
+    total_volume = sum(m.get("volume", 0) for m in markets)
     return total_volume
 
 
 def main():
-    total = get_total_pro_football_volume()
-    print(f"[{datetime.utcnow()}] Total Pro Football Market Volume: {total}")
+    timestamp = datetime.utcnow().isoformat()
+
+    try:
+        total_volume = get_total_pro_football_volume()
+        print(f"[{timestamp}] Total Pro Football Volume: {total_volume}")
+    except Exception as e:
+        print(f"[{timestamp}] ERROR: {e}")
 
 
 if __name__ == "__main__":
     main()
+
